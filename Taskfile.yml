@@ -1,5 +1,9 @@
 version: "3"
 
+vars:
+  TEST_DROPLET: "test-droplet"
+  DO_SSH_KEY: "tim-linux"
+
 tasks:
   poetry_install:
     desc: Run poetry install
@@ -40,9 +44,25 @@ tasks:
       - task: poetry_export
       - docker build -t reflex-test:test-build . && docker run -p 3000:3000 -p 8000:8000 reflex-test:test-build
 
+  droplet-create:
+    desc: Create a new droplet
+    vars:
+      SSH_KEY_ID:
+        sh: doctl compute ssh-key list | grep {{.DO_SSH_KEY}} | awk '{print $1}'
+    cmds:
+      - scripts/create-droplet.sh {{.TEST_DROPLET}} {{.SSH_KEY_ID}}
+      - ssh {{.TEST_DROPLET}} "bash -s" < ~/dotfiles/scripts/setup_docker.sh
+      - ssh {{.TEST_DROPLET}} "git clone https://github.com/TimChild/reflex_test.git"
+
+  temp:
+    desc: Temporary task
+    cmds:
+      # Get the IP of the newly created droplet
+      - echo $(doctl compute droplet get {{.TEST_DROPLET}} --format PublicIPv4 --no-header)
+
   deploy:
     desc: Deploy to droplet
     cmds:
       - task: poetry_export
       - git push
-      - ssh personal "bash -s" < remote-deploy-script.sh
+      - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-deploy-script.sh
