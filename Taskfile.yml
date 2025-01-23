@@ -71,7 +71,13 @@ tasks:
     cmds:
       - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-unzip-and-restart.sh
 
-  deploy:
+  deploy-init:
+    desc: First time deployment to droplet
+    cmds:
+      # Run normal deploy, but since docker compose not running, the `restart` command at the end won't start services
+      - task: deploy
+
+  deploy-update:
     desc: Deploy to droplet
     cmds:
       - task: poetry-export
@@ -81,3 +87,7 @@ tasks:
       # - git push
       # - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-deploy-script.sh
       #
+  droplet-delete:
+    desc: Delete the test droplet
+    cmds:
+      - doctl compute droplet delete -f {{.TEST_DROPLET}}
