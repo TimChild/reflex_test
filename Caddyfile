@@ -1,0 +1,11 @@
+blondephysicist.com {
+	reverse_proxy /_event web:8000
+	reverse_proxy /ping web:8000
+	reverse_proxy /admin web:8000
+	reverse_proxy web:3000
+
+	# Use Letsencrypt Staging for now
+	tls {
+		ca https://acme-staging-v02.api.letsencrypt.org/directory
+	}
+}
