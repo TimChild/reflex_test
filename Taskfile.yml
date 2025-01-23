@@ -57,7 +57,8 @@ tasks:
     cmds:
       - scripts/create-droplet.sh {{.TEST_DROPLET}} {{.SSH_KEY_ID}}
       - ssh {{.TEST_DROPLET}} "bash -s" < ~/dotfiles/scripts/setup_docker.sh
-      - ssh {{.TEST_DROPLET}} "git clone https://github.com/TimChild/reflex_test.git"
+      - ./scripts/initialize-droplet-files.sh
+      - task: deploy
 
   deploy-files-to-droplet:
     desc: Send frontend/backend files to droplet and restart services

@@ -54,3 +54,6 @@ if [ "$accessible" = false ]; then
 	exit 1
 fi
 
+# Install unzip on the droplet
+ssh $droplet_name "apt-get update && apt-get install -y unzip"
+

@@ -27,6 +27,7 @@ ENV PATH="/venv/bin:$PATH" \
 
 # Copy app source code into the container
 COPY ./backend /app
+COPY ./reflex-run.sh /app
 
 # Expose backend port (frontend run by caddy)
 EXPOSE 8000
@@ -37,4 +38,6 @@ STOPSIGNAL SIGKILL
 WORKDIR /app
 
 # Run reflex in production mode
-CMD ["reflex", "run", "--env", "prod", "--backend-only"]
+# CMD ["reflex", "run", "--env", "prod", "--backend-only"]
+# Run the run.sh script instead
+CMD ["sh", "reflex-run.sh"]
