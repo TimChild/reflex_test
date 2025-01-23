@@ -16,7 +16,7 @@ if [ -z "$ssh_key_id" ]; then
 fi
 
 # Create a new droplet
-doctl compute droplet create $droplet_name --image ubuntu-24-04-x64 --region sfo3 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id --wait
+doctl compute droplet create $droplet_name --image ubuntu-24-04-x64 --region sfo3 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id --enable-monitoring --wait
 
 echo "Droplet created successfully!"
 
