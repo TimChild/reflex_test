@@ -26,19 +26,15 @@ ENV PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
 # Copy app source code into the container
-COPY ./ /app
+COPY ./backend /app
 
-# Expose ports (8000 for backend, 3000 for frontend)
+# Expose backend port (frontend run by caddy)
 EXPOSE 8000
-EXPOSE 3000
 
 # Allow stopping the container (e.g. with docker-compose down)
 STOPSIGNAL SIGKILL
 
 WORKDIR /app
 
-# Install deps for reflex to build frontend
-RUN apt-get update && apt-get install -y unzip curl
-
 # Run reflex in production mode
-CMD ["reflex", "run", "--env", "prod"]
+CMD ["reflex", "run", "--env", "prod", "--backend-only"]

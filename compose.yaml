@@ -1,9 +1,6 @@
 services:
   web:
     build: .
-    # ports:
-    #   - "3000:3000"
-    #   - "8000:8000"
     depends_on:
       - caddy
 
@@ -16,6 +13,7 @@ services:
       - "9000:9000"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./frontend:/static
       - caddy_data:/data
       - caddy_config:/config
     restart: unless-stopped

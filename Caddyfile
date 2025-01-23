@@ -1,11 +1,24 @@
+# global options
+{
+	# Use Letsencrypt Staging for now
+	acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+localhost {
+	reverse_proxy /_event* web:8000
+	reverse_proxy /ping web:8000
+	reverse_proxy /admin* web:8000
+	root * /static
+	file_server
+}
+
 blondephysicist.com {
-	reverse_proxy /_event web:8000
+	reverse_proxy /_event web:8000/_event
 	reverse_proxy /ping web:8000
 	reverse_proxy /admin web:8000
-	reverse_proxy web:3000
+	file_server /static
+}
 
-	# Use Letsencrypt Staging for now
-	tls {
-		ca https://acme-staging-v02.api.letsencrypt.org/directory
-	}
+www.blondephysicist.com {
+	redir https://blondephysicist.com{uri}
 }

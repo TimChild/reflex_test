@@ -5,13 +5,13 @@ vars:
   DO_SSH_KEY: "tim-linux"
 
 tasks:
-  poetry_install:
+  poetry-install:
     desc: Run poetry install
     cmds:
       - poetry check
       - poetry install --sync
 
-  poetry_update:
+  poetry-update:
     desc: Run poetry update
     cmds:
       - poetry lock --regenerate
@@ -24,7 +24,7 @@ tasks:
     cmds:
       - git diff --quiet --staged || (echo "There are staged changes. Please unstage or commit them first." && exit 1)
 
-  poetry_export:
+  poetry-export:
     desc: Export poetry.lock to requirements.txt
     sources:
       - pyproject.toml
@@ -38,11 +38,16 @@ tasks:
       - git add requirements.txt
       - git commit -q -m "update backend requirements.txt" &> /dev/null && echo "Updated requirements.txt" || echo "No changes to requirements.txt"
 
+  reflex-export:
+    desc: Export frontend to be served statically
+    cmds:
+      - poetry run reflex export
+
   run-docker:
     desc: Run via docker (after exporing etc.)
     cmds:
-      - task: poetry_export
-      - docker build -t reflex-test:test-build . && docker run -p 3000:3000 -p 8000:8000 reflex-test:test-build
+      - task: poetry-export
+      - docker build -t reflex-test:test-build . && docker run -p 8000:8000 reflex-test:test-build
 
   droplet-create:
     desc: Create a new droplet
@@ -54,15 +59,24 @@ tasks:
       - ssh {{.TEST_DROPLET}} "bash -s" < ~/dotfiles/scripts/setup_docker.sh
       - ssh {{.TEST_DROPLET}} "git clone https://github.com/TimChild/reflex_test.git"
 
-  temp:
-    desc: Temporary task
+  deploy-files-to-droplet:
+    desc: Send frontend/backend files to droplet and restart services
     cmds:
-      # Get the IP of the newly created droplet
-      - echo $(doctl compute droplet get {{.TEST_DROPLET}} --format PublicIPv4 --no-header)
+      - rsync -avz backend.zip {{.TEST_DROPLET}}:~/reflex_test/backend.zip
+      - rsync -avz frontend.zip {{.TEST_DROPLET}}:~/reflex_test/frontend.zip
+
+  deploy-run-files-on-droplet:
+    desc: Unzip files and restart services on droplet
+    cmds:
+      - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-unzip-and-restart.sh
 
   deploy:
     desc: Deploy to droplet
     cmds:
-      - task: poetry_export
-      - git push
-      - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-deploy-script.sh
+      - task: poetry-export
+      - task: reflex-export
+      - task: deploy-files-to-droplet
+      - task: deploy-run-files-on-droplet
+      # - git push
+      # - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-deploy-script.sh
+      #
