@@ -13,6 +13,13 @@ tasks:
       - poetry lock --regenerate
       - task poetry_install
 
+  check-no-staged-changes:
+    desc: Check if there are any staged changes
+    # Useful when a task will add and commit specific files (don't want to commit other staged changes)
+    silent: true
+    cmds:
+      - git diff --quiet --staged || (echo "There are staged changes. Please unstage or commit them first." && exit 1)
+
   poetry_export:
     desc: Export poetry.lock to requirements.txt
     sources:
@@ -20,11 +27,22 @@ tasks:
       - poetry.lock
     generates:
       - requirements.txt
+    deps:
+      - check-no-staged-changes
     cmds:
       - poetry check && poetry export -f requirements.txt --output requirements.txt --without-hashes
+      - git add requirements.txt
+      - git commit -q -m "update backend requirements.txt" &> /dev/null && echo "Updated requirements.txt" || echo "No changes to requirements.txt"
 
   run-docker:
     desc: Run via docker (after exporing etc.)
     cmds:
       - task: poetry_export
       - docker build -t reflex-test:test-build . && docker run -p 3000:3000 -p 8000:8000 reflex-test:test-build
+
+  deploy:
+    desc: Deploy to droplet
+    cmds:
+      - task: poetry_export
+      - git push
+      - ssh personal "bash -s" < remote-deploy-script.sh

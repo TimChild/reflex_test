@@ -6,3 +6,4 @@ Caddyfile
 compose.yaml
 .task
 .web
+remote-deploy-script.sh
