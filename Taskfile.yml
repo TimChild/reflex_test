@@ -1,0 +1,30 @@
+version: "3"
+
+tasks:
+  poetry_install:
+    desc: Run poetry install
+    cmds:
+      - poetry check
+      - poetry install --sync
+
+  poetry_update:
+    desc: Run poetry update
+    cmds:
+      - poetry lock --regenerate
+      - task poetry_install
+
+  poetry_export:
+    desc: Export poetry.lock to requirements.txt
+    sources:
+      - pyproject.toml
+      - poetry.lock
+    generates:
+      - requirements.txt
+    cmds:
+      - poetry check && poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+  run-docker:
+    desc: Run via docker (after exporing etc.)
+    cmds:
+      - task: poetry_export
+      - docker build -t reflex-test:test-build . && docker run -p 3000:3000 -p 8000:8000 reflex-test:test-build
