@@ -1,0 +1,8 @@
+Dockerfile
+**/__pycache__
+Taskfile.yml
+poetry.lock
+Caddyfile
+compose.yaml
+.task
+.web
