@@ -45,8 +45,14 @@ class State(rx.State):
 def render_add_model() -> rx.Component:
     return rx.hstack(
         rx.form(
-            rx.input(name="a", label="A", type="number"),
-            rx.input(name="b", label="B"),
+            rx.hstack(
+                "enter a number",
+                rx.input(name="a", label="A", type="number"),
+            ),
+            rx.hstack(
+                "enter text",
+                rx.input(name="b", label="B"),
+            ),
             rx.button("Add Model"),
             on_submit=State.save_new_model,
         )

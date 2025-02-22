@@ -95,3 +95,14 @@ tasks:
           SSH_NAME: "{{.SSH_NAME}}"
           SITE_NAME: "{{.SITE_NAME}}"
           PROJECT_DIR: "{{.TASKFILE_DIR}}"
+
+  manual-send-initial-db:
+    prompt: This should only need to be done once, are you sure you want to overwrite the database?
+    desc: Send an initial state of the database to the server
+    requires:
+      VARS: [SSH_NAME, SITE_NAME]
+    vars:
+      SITE_NAME: "reflex-example"
+    cmds:
+      - ssh {{.SSH_NAME}} "mkdir -p sites/{{.SITE_NAME}}/db"
+      - scp db/reflex.db {{.SSH_NAME}}:sites/{{.SITE_NAME}}/db/reflex.db

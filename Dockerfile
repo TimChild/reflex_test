@@ -41,5 +41,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ##########
 WORKDIR /app
-RUN reflex db migrate
-CMD ["reflex", "run", "--env", "prod", "--backend-only", "--loglevel", "info"]
+COPY alembic /app/alembic
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
