@@ -42,5 +42,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 ##########
 WORKDIR /app
 COPY alembic /app/alembic
+COPY alembic.ini /app/alembic.ini
 COPY scripts/entrypoint.sh /app/entrypoint.sh
 CMD ["/app/entrypoint.sh"]
