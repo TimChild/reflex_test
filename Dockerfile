@@ -1,43 +1,44 @@
-# syntax=docker/dockerfile:1
-# Keep this syntax directive! It's used to enable Docker BuildKit
+## https://github.com/astral-sh/uv-docker-example/blob/main/standalone.Dockerfile
 
-# Builder will install uv to do the installation of requirements
-FROM python:3.12 AS builder
+# Using uv image with explicitly managed python
+FROM ghcr.io/astral-sh/uv:bookworm-slim AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-# Install uv and requirements (note: requirements.txt should be updated prior to docker build via poetry export)
-ENV VIRTUAL_ENV=/venv
-ENV UV_INSTALL_DIR=/root/bin
-ENV PATH="$UV_INSTALL_DIR:$PATH"
-RUN curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+# Configure the Python directory so it is consistent
+ENV UV_PYTHON_INSTALL_DIR /python
 
-# Setup virtual environment
-RUN uv venv $VIRTUAL_ENV
+# Only use the managed Python version
+ENV UV_PYTHON_PREFERENCE=only-managed
 
-# Install dependencies
-COPY requirements.txt /requirements.txt
-RUN uv pip install --no-cache -r requirements.txt
-
-# Runtime only copies the already installed dependencies (not requiring uv or curl etc.)
-FROM python:3.12-slim AS runtime
-
-COPY --from=builder /venv /venv
-# Add /venv/bin to the path so that the installed packages are available
-ENV PATH="/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1
-
-# Copy app source code into the container
-COPY ./backend /app
-COPY ./reflex-run.sh /app
-
-# Expose backend port (frontend run by caddy)
-EXPOSE 8000
-
-# Allow stopping the container (e.g. with docker-compose down)
-STOPSIGNAL SIGKILL
+# Install Python before the project for caching
+RUN uv python install 3.13
 
 WORKDIR /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
-# Run reflex in production mode
-# CMD ["reflex", "run", "--env", "prod", "--backend-only"]
-# Run the run.sh script instead
-CMD ["sh", "reflex-run.sh"]
+COPY example_reflex/ example_reflex/
+COPY pyproject.toml .
+COPY uv.lock .
+COPY rxconfig.py .
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+# Then, use a final image without uv (note this also doesn't include python)
+FROM debian:bookworm-slim
+
+# Copy the Python installed in the builder
+COPY --from=builder --chown=python:python /python /python
+
+# Copy the application from the builder
+COPY --from=builder --chown=app:app /app /app
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
+##########
+WORKDIR /app
+CMD ["reflex", "run", "--env", "prod", "--backend-only", "--loglevel", "info"]

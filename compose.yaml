@@ -1,23 +1,30 @@
 services:
-  web:
+  redis:
+    image: redis:7.4
+
+  app:
+    # Build the image from the Dockerfile in the current directory
     build: .
-    depends_on:
-      - caddy
 
-  caddy:
-    image: caddy:2.9.1
+    # Host the application on port 8000
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-      - "9000:9000"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./frontend:/static
-      - caddy_data:/data
-      - caddy_config:/config
-    restart: unless-stopped
+      - "8000:8000"
+    env_file:
+      - .env
 
-volumes:
-  caddy_data:
-  caddy_config:
+    develop:
+      # Create a `watch` configuration to update the appl
+      # https://docs.docker.com/compose/file-watch/#compose-watch-versus-bind-mounts
+      watch:
+        # Sync the working directory with the `/app` directory in the container
+        - action: sync
+          path: ./example_reflex/
+          target: example_reflex/
+          # # Exclude the project virtual environment — it could be for a
+          # # different platform in the container
+          # ignore:
+          #   - .venv/
+
+        # Rebuild the image if dependencies change by checking uv.lock
+        - action: rebuild
+          path: ./uv.lock

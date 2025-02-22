@@ -1,93 +1,40 @@
 version: "3"
 
-vars:
-  TEST_DROPLET: "test-droplet"
-  DO_SSH_KEY: "tim-linux"
+includes:
+  web:
+    taskfile: ~/github/webserver-personal/Taskfile.yml
+    dir: ~/github/webserver-personal
+    optional: true
+    internal: true
 
 tasks:
-  poetry-install:
-    desc: Run poetry install
+  install:
+    desc: Install project dependencies and setup pre-commit
     cmds:
-      - poetry check
-      - poetry install --sync
+      - uv sync --dev
+      - task pre-commit-install
+  lock:
+    desc: Lock and updated dependencies
+    cmds:
+      - uv lock -U
 
-  poetry-update:
-    desc: Run poetry update
+  pre-commit-install:
+    desc: One off setup of pre-commit (uses venv to install pre-commit)
     cmds:
-      - poetry lock --regenerate
-      - task poetry_install
+      - uv run --dev pre-commit install
 
-  check-no-staged-changes:
-    desc: Check if there are any staged changes
-    # Useful when a task will add and commit specific files (don't want to commit other staged changes)
-    silent: true
+  pre-commit-all:
+    desc: Run pre-commit on all files.
     cmds:
-      - git diff --quiet --staged || (echo "There are staged changes. Please unstage or commit them first." && exit 1)
+      - uv run --dev pre-commit run --all-files --verbose
 
-  poetry-export:
-    desc: Export poetry.lock to requirements.txt
-    sources:
-      - pyproject.toml
-      - poetry.lock
-    generates:
-      - requirements.txt
-    deps:
-      - check-no-staged-changes
+  run:
+    desc: Run reflex locally
     cmds:
-      - poetry check && poetry export -f requirements.txt --output requirements.txt --without-hashes
-      - git add requirements.txt
-      - git commit -q -m "update backend requirements.txt" &> /dev/null && echo "Updated requirements.txt" || echo "No changes to requirements.txt"
+      - uv run reflex migrate && uv run reflex run
 
-  reflex-export:
-    desc: Export frontend to be served statically
+  run-compose:
+    desc: Run backend similar to production
     cmds:
-      - poetry run reflex export
-
-  run-docker:
-    desc: Run via docker (after exporing etc.)
-    cmds:
-      - task: poetry-export
-      - docker build -t reflex-test:test-build . && docker run -p 8000:8000 reflex-test:test-build
-
-  droplet-create:
-    desc: Create a new droplet
-    vars:
-      SSH_KEY_ID:
-        sh: doctl compute ssh-key list | grep {{.DO_SSH_KEY}} | awk '{print $1}'
-    cmds:
-      - scripts/create-droplet.sh {{.TEST_DROPLET}} {{.SSH_KEY_ID}}
-      - ssh {{.TEST_DROPLET}} "bash -s" < ~/dotfiles/scripts/setup_docker.sh
-      - ./scripts/initialize-droplet-files.sh
-      - task: deploy
-
-  deploy-files-to-droplet:
-    desc: Send frontend/backend files to droplet and restart services
-    cmds:
-      - rsync -avz backend.zip {{.TEST_DROPLET}}:~/reflex_test/backend.zip
-      - rsync -avz frontend.zip {{.TEST_DROPLET}}:~/reflex_test/frontend.zip
-
-  deploy-run-files-on-droplet:
-    desc: Unzip files and restart services on droplet
-    cmds:
-      - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-unzip-and-restart.sh
-
-  deploy-init:
-    desc: First time deployment to droplet
-    cmds:
-      # Run normal deploy, but since docker compose not running, the `restart` command at the end won't start services
-      - task: deploy
-
-  deploy-update:
-    desc: Deploy to droplet
-    cmds:
-      - task: poetry-export
-      - task: reflex-export
-      - task: deploy-files-to-droplet
-      - task: deploy-run-files-on-droplet
-      # - git push
-      # - ssh {{.TEST_DROPLET}} "bash -s" < scripts/remote-deploy-script.sh
-      #
-  droplet-delete:
-    desc: Delete the test droplet
-    cmds:
-      - doctl compute droplet delete -f {{.TEST_DROPLET}}
+      - docker compose down
+      - docker compose up --watch --force-recreate
