@@ -31,7 +31,7 @@ tasks:
   run:
     desc: Run reflex locally
     cmds:
-      - uv run reflex migrate && uv run reflex run
+      - uv run reflex db migrate && uv run reflex run
 
   run-compose:
     desc: Run backend similar to production
