@@ -38,3 +38,60 @@ tasks:
     cmds:
       - docker compose down
       - docker compose up --watch --force-recreate
+
+  manual-deploy:
+    prompt: This is normally handled by a GHA workflow. Are you sure you want to continue?
+    desc: Manually deploy the frontend and backend
+    vars:
+      SSH_NAME: '{{default "webserver" .SSH_NAME}}'
+      SITE_NAME: "reflex-example"
+    cmds:
+      - task: manual-deploy-frontend
+        vars:
+          SSH_NAME: "{{.SSH_NAME}}"
+          SITE_NAME: "{{.SITE_NAME}}"
+      - task: manual-deploy-backend
+        vars:
+          SSH_NAME: "{{.SSH_NAME}}"
+          SITE_NAME: "{{.SITE_NAME}}"
+
+  manual-build-frontend:
+    desc: Build the the frontend (exports to `./site`)
+    cmds:
+      - mkdir -p "tmp_frontend_zip"
+      - rm -rf "site"
+      - mkdir -p "site"
+      - uv run reflex export --frontend-only --zip-dest-dir "tmp_frontend_zip"
+      - unzip -q tmp_frontend_zip/frontend.zip -d site/
+      - rm -r "tmp_frontend_zip"
+
+  manual-deploy-frontend:
+    prompt: This is normally handled by a GHA workflow. Are you sure you want to continue?
+    desc: Manually copy files to server to deploy (usually should rely on CI/CD instead)
+    vars:
+      SSH_NAME: '{{default "webserver" .SSH_NAME}}'
+      SITE_NAME: "reflex-example"
+    cmds:
+      - task: manual-build-frontend
+      # Initialize the .env file from local only if it doesn't already exist there (generally should be set from GHA)
+      - rsync -a --ignore-existing .env {{.SSH_NAME}}:sites/{{.SITE_NAME}}/.env
+      - task: web:deploy-static
+        vars:
+          SSH_NAME: "{{.SSH_NAME}}"
+          SITE_NAME: "{{.SITE_NAME}}"
+          STATIC_DIR: "site"
+          PROJECT_DIR: "{{.TASKFILE_DIR}}"
+
+  manual-deploy-backend:
+    prompt: This is normally handled by a GHA workflow. Are you sure you want to continue?
+    desc: Build the backend and deploy it to the server (usually should rely on CI/CD instead)
+    vars:
+      SSH_NAME: '{{default "webserver" .SSH_NAME}}'
+      SITE_NAME: "reflex-example"
+    cmds:
+      - rsync -a --ignore-existing .env {{.SSH_NAME}}:sites/{{.SITE_NAME}}/.env
+      - task: web:deploy-docker-backend
+        vars:
+          SSH_NAME: "{{.SSH_NAME}}"
+          SITE_NAME: "{{.SITE_NAME}}"
+          PROJECT_DIR: "{{.TASKFILE_DIR}}"
