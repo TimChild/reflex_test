@@ -5,6 +5,7 @@ description = "Basic example of using Reflex."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dependency-injector~=4.45.0",
     "reflex~=0.7.0",
 ]
 
