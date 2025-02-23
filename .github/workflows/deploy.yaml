@@ -42,6 +42,7 @@ jobs:
       name: production
     permissions:
       contents: read
+      packages: write
 
     steps:
       - name: Checkout code
@@ -53,8 +54,6 @@ jobs:
 
       - name: Deploy backend
         uses: TimChild/webserver-template/actions/deploy-reflex-backend@main
-        permissions:
-          packages: write
         with:
           vps-ip: ${{ vars.VPS_IP }}
           site-name: ${{ vars.SITE_NAME }}
