@@ -4,8 +4,6 @@ from typing import Any
 import reflex as rx
 from sqlmodel import select
 
-from rxconfig import config
-
 
 class ExampleModel(rx.Model, table=True):
     a: int = 0
@@ -81,15 +79,10 @@ def index() -> rx.Component:
     return rx.container(
         rx.color_mode.button(position="top-right"),
         rx.vstack(
-            rx.heading("Welcome to My app!", size="9"),
-            rx.text(
-                "Get started by editing ",
-                rx.code(f"{config.app_name}/{config.app_name}.py"),
-                size="5",
-            ),
+            rx.heading("This is just a temporary test app.", size="9"),
             rx.link(
-                rx.button("Check out our docs!"),
-                href="https://reflex.dev/docs/getting-started/introduction/",
+                rx.button("Check out my portfolio"),
+                href="https://adventuresoftim.com",
                 is_external=True,
             ),
             rx.hstack(
